@@ -32,6 +32,10 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
+    TextView info, location;
+    String lat = "";
+    String lon = "";
+
     public class BG extends AsyncTask<String, Void, String> {
         @Override
         protected void onPreExecute() {
@@ -69,7 +73,7 @@ public class MainActivity extends AppCompatActivity {
             http.setRequestProperty("Content-Type", "application/json; utf-8");
             http.setRequestProperty("Accept", "application/json");
             http.setDoOutput(true);
-            String jsonInputString = "{\"token\": \"pk.4808dce2252a7e5ef0872b000a33809d\",\"radio\": \"lte\",\"mcc\": 405,\"mnc\": 872,\"cells\": [{\"lac\": 60,\"cid\": 34326800,\"psc\": 0}],\"address\": 1}";
+            String jsonInputString = "{\"token\": \"pk.4808dce2252a7e5ef0872b000a33809d\",\"radio\": \"lte\",\"mcc\": "+urls[1] +",\"mnc\": "+urls[2] +",\"cells\": [{\"lac\": "+urls[3]+",\"cid\": "+urls[4]+",\"psc\": 0}],\"address\": 1}";
             try (OutputStream os = http.getOutputStream()) {
                 byte[] input = jsonInputString.getBytes("utf-8");
                 os.write(input, 0, input.length);
@@ -96,13 +100,20 @@ public class MainActivity extends AppCompatActivity {
             Log.d("HarryBG", "onPostExecute: ran");
             Log.d("HarryBG", s);
 
+            if(s.substring(11, 13).equals("ok")){
+                int index = s.indexOf("\"lat\":") + ("\"lat\":").length();
+                int endIndex = s.indexOf(",",index);
+                lat = s.substring(index, endIndex).trim();
+
+                index = s.indexOf("\"lon\":") + ("\"lon\":").length();
+                endIndex = s.indexOf(",",index);
+                lon = s.substring(index, endIndex).trim();
+
+            }
+
         }
 
     }
-
-
-
-    TextView info, location;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -110,13 +121,15 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 //        info = findViewById(R.id.info_dup);
         location = findViewById((R.id.loc));
-        BG task = new BG();
-        task.execute("https://ap1.unwiredlabs.com/v2/process.php");
 
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
     public void trigger(View view) throws IOException {
+
+        Log.i("trigger", "trigger function fired");
+
+
 
         TelephonyManager tm = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
         String operator = "Network operator : " + tm.getNetworkOperator();
@@ -146,14 +159,24 @@ public class MainActivity extends AppCompatActivity {
                     //write out parsed results for what it's worth
 //                    Log.i("LTE parseOutput", "tAdvance: " + lte.tAdvance + "\r\nCQI: " + lte.CQI + "\r\nRSSNR: " + lte.RSSNR + "\r\nRSRP: " + lte.RSRP + "\r\nSS: " + lte.SS +
 //                            "\r\nCID: " + lte.CID + "\r\nTimestamp: " + lte.timeStamp + "\r\nTAC: " + lte.TAC + "\r\nPCI: " + lte.PCI + "\r\nMNC: " + lte.MNC + "\r\nMCC: " + lte.MCC + "\r\nRegistered: " + lte.isRegistered);
-                    text += "MCC: " + lte.MCC + "\nMNC: " + lte.MNC + "\nLAC: " + lte.TAC + "\nCID: " + lte.CID+"\n\n";
+                    if(lte.MCC == 0)
+                        continue;
+
+
+
+                    BG task = new BG();
+                    task.execute("https://ap1.unwiredlabs.com/v2/process.php", Integer.toString(lte.MCC), Integer.toString(lte.MNC), Integer.toString(lte.TAC), Integer.toString(lte.CID));
+                    text += "MCC: " + lte.MCC + "\nMNC: " + lte.MNC + "\nLAC: " + lte.TAC + "\nCID: " + lte.CID+"\nLat :"+lat+"\nLon :"+lon+"\n\n";
                 } else
                     Log.i("LTE testing", "not LTE cell info measured");
+
             }
 
         }
         else
             text = "No data";
+
+
 
         location.setText(text);
 
