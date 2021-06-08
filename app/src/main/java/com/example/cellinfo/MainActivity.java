@@ -29,13 +29,14 @@ import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
     TextView info, location;
-    String lat = "";
-    String lon = "";
+    ArrayList<String> lat = new ArrayList<>();
+    ArrayList<String> lon = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -139,15 +140,15 @@ public class MainActivity extends AppCompatActivity {
                         if(s.substring(11, 13).equals("ok")){
                             int index = s.indexOf("\"lat\":") + ("\"lat\":").length();
                             int endIndex = s.indexOf(",",index);
-                            lat = s.substring(index, endIndex).trim();
+                            lat.add(s.substring(index, endIndex).trim());
 
                             index = s.indexOf("\"lon\":") + ("\"lon\":").length();
                             endIndex = s.indexOf(",",index);
-                            lon = s.substring(index, endIndex).trim();
+                            lon.add(s.substring(index, endIndex).trim());
 
                         }
 
-                        text += "MCC: " + lte.MCC + "\nMNC: " + lte.MNC + "\nLAC: " + lte.TAC + "\nCID: " + lte.CID+"\nLat :"+lat+"\nLon :"+lon+"\n\n";
+                        text += "MCC: " + lte.MCC + "\nMNC: " + lte.MNC + "\nLAC: " + lte.TAC + "\nCID: " + lte.CID+"\nLat :"+lat.get(lat.size()-1)+"\nLon :"+lon.get(lon.size()-1)+"\n\n";
                     } else
                         Log.i("LTE testing", "not LTE cell info measured");
 
