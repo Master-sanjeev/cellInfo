@@ -19,6 +19,7 @@ import androidx.core.app.ActivityCompat;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
@@ -42,58 +43,51 @@ public class MainActivity extends AppCompatActivity {
         protected String doInBackground(String... urls) {
             String text = "";
             Log.d("HarryBG", "doInBackground: ran");
+//            Log.d("HarryBG", urls[0]);
             String result = "";
-            URL url;
-            HttpURLConnection conn;
+//            URL url;
+//            HttpURLConnection conn;
+            URL url = null;
             try {
-                url = new URL(urls[0]);
-//                conn = (HttpURLConnection) url.openConnection();
-//                InputStream in = conn.getInputStream();
-//                InputStreamReader reader = new InputStreamReader(in);
-//                int data = reader.read();
-//                while (data != -1) {
-//                    char current = (char) data;
-//                    result += current;
-//                    data = reader.read();
-
-
-//                    URL url = new URL("https://ap1.unwiredlabs.com/v2/process.php");
-                    URLConnection con = url.openConnection();
-                    HttpURLConnection http = (HttpURLConnection)con;
-                    http.setRequestMethod("POST"); // PUT is another valid option
-                    http.setDoOutput(true);
-                    http.setRequestProperty("Content-Type", "application/json; utf-8");
-                    http.setRequestProperty("Accept", "application/json");
-                    http.setDoOutput(true);
-                    String jsonInputString = "{\"token\": \"pk.4808dce2252a7e5ef0872b000a33809d\",\"radio\": \"lte\",\"mcc\": 405,\"mnc\": 872,\"cells\": [{\"lac\": 60,\"cid\": 34326800,\"psc\": 0}],\"address\": 1}";
-                    try(OutputStream os = http.getOutputStream()) {
-                        byte[] input = jsonInputString.getBytes("utf-8");
-                        os.write(input, 0, input.length);
-                    }
-                    try(BufferedReader br = new BufferedReader(
-                            new InputStreamReader(con.getInputStream(), "utf-8"))) {
-                        StringBuilder response = new StringBuilder();
-                        String responseLine = null;
-                        while ((responseLine = br.readLine()) != null) {
-                            response.append(responseLine.trim());
-                        }
-//            System.out.println(response.toString());
-                        text = "\n"+response.toString();
-                    }
-                } catch (UnsupportedEncodingException unsupportedEncodingException) {
-                unsupportedEncodingException.printStackTrace();
-            } catch (ProtocolException protocolException) {
-                protocolException.printStackTrace();
-            } catch (MalformedURLException malformedURLException) {
-                malformedURLException.printStackTrace();
-            } catch (IOException ioException) {
-                ioException.printStackTrace();
+                url = new URL("https://ap1.unwiredlabs.com/v2/process.php");
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
             }
-            catch(Exception e){
+            URLConnection con = null;
+            try {
+                con = url.openConnection();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            HttpURLConnection http = (HttpURLConnection) con;
+            try {
+                http.setRequestMethod("POST"); // PUT is another valid option
+            } catch (ProtocolException e) {
+                e.printStackTrace();
+            }
+            http.setDoOutput(true);
+            http.setRequestProperty("Content-Type", "application/json; utf-8");
+            http.setRequestProperty("Accept", "application/json");
+            http.setDoOutput(true);
+            String jsonInputString = "{\"token\": \"pk.4808dce2252a7e5ef0872b000a33809d\",\"radio\": \"lte\",\"mcc\": 405,\"mnc\": 872,\"cells\": [{\"lac\": 60,\"cid\": 34326800,\"psc\": 0}],\"address\": 1}";
+            try (OutputStream os = http.getOutputStream()) {
+                byte[] input = jsonInputString.getBytes("utf-8");
+                os.write(input, 0, input.length);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            try (BufferedReader br = new BufferedReader(
+                    new InputStreamReader(con.getInputStream(), "utf-8"))) {
+                StringBuilder response = new StringBuilder();
+                String responseLine = null;
+                while ((responseLine = br.readLine()) != null) {
+                    response.append(responseLine.trim());
+                }
+                Log.d("Network details", response.toString());
+            } catch (Exception e) {
                 e.printStackTrace();
                 return "Something went wrong";
             }
-            Log.d("HarryBG", text);
             return text;
         }
         @Override
