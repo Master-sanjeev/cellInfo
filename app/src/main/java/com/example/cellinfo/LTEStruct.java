@@ -21,10 +21,10 @@ public class LTEStruct {
     public int CQI;
     public int tAdvance;
 
-    Context mContext;
+    MainActivity.BG mContext;
 
     //Public constructor
-    public LTEStruct(Context context)
+    public LTEStruct(MainActivity.BG context)
     {
         mContext = context; //not used at the moment but possibly for future function
     }
