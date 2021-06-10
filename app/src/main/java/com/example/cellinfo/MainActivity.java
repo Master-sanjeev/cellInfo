@@ -4,6 +4,7 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -14,9 +15,16 @@ import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -34,9 +42,11 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    TextView info, location;
+    TextView info, location, dist;
     ArrayList<String> lat = new ArrayList<>();
     ArrayList<String> lon = new ArrayList<>();
+    FusedLocationProviderClient fusedLocationProviderClient;
+    double latitude, longitude;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,7 +54,47 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 //        info = findViewById(R.id.info_dup);
         location = findViewById((R.id.loc));
+        info = findViewById(R.id.textView4);
+        dist = findViewById(R.id.textView5);
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+        getLastLocation();
 
+    }
+    private void getLastLocation() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        Task<Location> locationTask = fusedLocationProviderClient.getLastLocation();
+
+        locationTask.addOnSuccessListener(new OnSuccessListener<Location>() {
+            @Override
+            public void onSuccess(Location location) {
+                if (location != null) {
+                    //We have a location
+
+                    latitude = location.getLatitude();
+                    longitude = location.getLongitude();
+                    info.setText("GPS coordinates : "+"Latitude : "+latitude+"  Longitude : "+longitude);
+
+                } else  {
+                    Log.d("TAG", "onSuccess: Location was null...");
+                }
+            }
+        });
+
+        locationTask.addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                Log.e("TAG", "onFailure: " + e.getLocalizedMessage() );
+            }
+        });
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
@@ -172,8 +222,54 @@ public class MainActivity extends AppCompatActivity {
             Log.d("HarryBG", "onPostExecute: ran");
             Log.d("HarryBG", s);
             location.setText(s);
+            double total_dist = 0, avg_distance;
+            ArrayList<Double> distances = new ArrayList<>();
+            for(int i=0; i<lat.size(); i++){
+                distances.add(distance(latitude, Double.parseDouble(lat.get(i)), longitude, Double.parseDouble(lon.get(i))));
+            }
+
+            for(double dist : distances){
+                total_dist += dist;
+            }
+
+            avg_distance = total_dist/distances.size()*1000;
+
+            if(avg_distance < 1000)
+                dist.setText("No sign of spoofing. \nAverage distance to nearest mobile towers : "+Double.toString(avg_distance)+" meters");
+            else
+                dist.setText("possible sign of spoofing");
         }
 
+    }
+
+    public static double distance(double lat1,
+                                  double lat2, double lon1,
+                                  double lon2)
+    {
+
+        // The math module contains a function
+        // named toRadians which converts from
+        // degrees to radians.
+        lon1 = Math.toRadians(lon1);
+        lon2 = Math.toRadians(lon2);
+        lat1 = Math.toRadians(lat1);
+        lat2 = Math.toRadians(lat2);
+
+        // Haversine formula
+        double dlon = lon2 - lon1;
+        double dlat = lat2 - lat1;
+        double a = Math.pow(Math.sin(dlat / 2), 2)
+                + Math.cos(lat1) * Math.cos(lat2)
+                * Math.pow(Math.sin(dlon / 2),2);
+
+        double c = 2 * Math.asin(Math.sqrt(a));
+
+        // Radius of earth in kilometers. Use 3956
+        // for miles
+        double r = 6371;
+
+        // calculate the result
+        return(c * r);
     }
 
 
