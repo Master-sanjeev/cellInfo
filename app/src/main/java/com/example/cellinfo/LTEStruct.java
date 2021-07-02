@@ -13,6 +13,7 @@ public class LTEStruct {
     public int CID;
     public int PCI;
     public int TAC;
+    public int STH;
 
     public int SS;
     public int RSRP;
@@ -48,6 +49,7 @@ public class LTEStruct {
             CID = (int) getValue(inTest, "mCi=", " ");       //get CID
             PCI = (int) getValue(inTest, "mPci=", " ");       //get PCI
             TAC = (int) getValue(inTest, "mTac=", " ");       //get TAC
+            STH = (int) -getValue(inTest, "rssi=", " ");
         }
 
 //        MCC = 0;

@@ -45,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
     TextView info, location, dist;
     ArrayList<String> lat = new ArrayList<>();
     ArrayList<String> lon = new ArrayList<>();
+    List<Double> signals = new ArrayList<>();
     FusedLocationProviderClient fusedLocationProviderClient;
     double latitude, longitude;
 
@@ -133,6 +134,7 @@ public class MainActivity extends AppCompatActivity {
 //                text += info.toString() +"\n\n";
                     if (info instanceof CellInfoLte) {
                         LTEStruct lte = new LTEStruct(this);
+                        Log.i("cell info : ",info.toString());
                         lte.parse(info.toString());
                         //write out parsed results for what it's worth
 //                    Log.i("LTE parseOutput", "tAdvance: " + lte.tAdvance + "\r\nCQI: " + lte.CQI + "\r\nRSSNR: " + lte.RSSNR + "\r\nRSRP: " + lte.RSRP + "\r\nSS: " + lte.SS +
@@ -196,9 +198,10 @@ public class MainActivity extends AppCompatActivity {
                             endIndex = s.indexOf(",",index);
                             lon.add(s.substring(index, endIndex).trim());
 
+                            signals.add((double) lte.STH);
                         }
 
-                        text += "MCC: " + lte.MCC + "\nMNC: " + lte.MNC + "\nLAC: " + lte.TAC + "\nCID: " + lte.CID+"\nLat :"+lat.get(lat.size()-1)+"\nLon :"+lon.get(lon.size()-1)+"\n\n";
+                        text += "MCC: " + lte.MCC + "\nMNC: " + lte.MNC + "\nLAC: " + lte.TAC + "\nCID: " + lte.CID+"\nLat :"+lat.get(lat.size()-1)+"\nLon :"+lon.get(lon.size()-1)+"\nStrength : "+lte.STH+"\n\n";
                     } else
                         Log.i("LTE testing", "not LTE cell info measured");
 
@@ -216,12 +219,15 @@ public class MainActivity extends AppCompatActivity {
 
             return text;
         }
+        @SuppressLint("SetTextI18n")
         @Override
         protected void onPostExecute(String s) {
             super.onPostExecute(s);
             Log.d("HarryBG", "onPostExecute: ran");
             Log.d("HarryBG", s);
             location.setText(s);
+
+
             double total_dist = 0, avg_distance;
             ArrayList<Double> distances = new ArrayList<>();
             for(int i=0; i<lat.size(); i++){
@@ -237,7 +243,20 @@ public class MainActivity extends AppCompatActivity {
             if(avg_distance < 1000)
                 dist.setText("No sign of spoofing. \nAverage distance to nearest mobile towers : "+Double.toString(avg_distance)+" meters");
             else
-                dist.setText("possible sign of spoofing");
+                dist.setText(avg_distance+getString(R.string.avg));
+
+            double sum = 0;
+            for(double signal : signals){
+                sum += signal;
+            }
+
+            for(int i=0; i<signals.size(); i++){
+                signals.set(i, ((sum-signals.get(i)+1)/sum)*100);
+            }
+
+
+
+
         }
 
     }
