@@ -32,6 +32,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Array;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
@@ -43,11 +44,11 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
 
     TextView info, location, dist;
-    ArrayList<String> lat = new ArrayList<>();
-    ArrayList<String> lon = new ArrayList<>();
-    List<Double> signals = new ArrayList<>();
+    ArrayList<String> lat = new ArrayList<>(); //contains latitute of the ith base station
+    ArrayList<String> lon = new ArrayList<>(); //contains lognitute of the ith base station
+    List<Integer> signals = new ArrayList<>(); //contains signal strengths of ith base station
     FusedLocationProviderClient fusedLocationProviderClient;
-    double latitude, longitude;
+    double latitude, longitude; //phone's coordinates
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -198,7 +199,7 @@ public class MainActivity extends AppCompatActivity {
                             endIndex = s.indexOf(",",index);
                             lon.add(s.substring(index, endIndex).trim());
 
-                            signals.add((double) lte.STH);
+                            signals.add(lte.STH);
                         }
 
                         text += "MCC: " + lte.MCC + "\nMNC: " + lte.MNC + "\nLAC: " + lte.TAC + "\nCID: " + lte.CID+"\nLat :"+lat.get(lat.size()-1)+"\nLon :"+lon.get(lon.size()-1)+"\nStrength : "+lte.STH+"\n\n";
@@ -228,36 +229,97 @@ public class MainActivity extends AppCompatActivity {
             location.setText(s);
 
 
-            double total_dist = 0, avg_distance;
-            ArrayList<Double> distances = new ArrayList<>();
-            for(int i=0; i<lat.size(); i++){
-                distances.add(distance(latitude, Double.parseDouble(lat.get(i)), longitude, Double.parseDouble(lon.get(i))));
-            }
+//            double total_dist = 0, avg_distance;
+//            ArrayList<Double> distances = new ArrayList<>();
+//            for(int i=0; i<lat.size(); i++){
+//                distances.add(distance(latitude, Double.parseDouble(lat.get(i)), longitude, Double.parseDouble(lon.get(i))));
+//            }
+//
+//            for(double dist : distances){
+//                total_dist += dist;
+//            }
+//
+//            avg_distance = total_dist/distances.size()*1000;
+//
+//            if(avg_distance < 1000)
+//                dist.setText("No sign of spoofing. \nAverage distance to nearest mobile towers : "+Double.toString(avg_distance)+" meters");
+//            else
+//                dist.setText(avg_distance+getString(R.string.avg));
 
-            for(double dist : distances){
-                total_dist += dist;
-            }
-
-            avg_distance = total_dist/distances.size()*1000;
-
-            if(avg_distance < 1000)
-                dist.setText("No sign of spoofing. \nAverage distance to nearest mobile towers : "+Double.toString(avg_distance)+" meters");
-            else
-                dist.setText(avg_distance+getString(R.string.avg));
-
-            double sum = 0;
-            for(double signal : signals){
+            int sum = 0;
+            for(int signal : signals){
                 sum += signal;
             }
-
+//            String testing = "";
             for(int i=0; i<signals.size(); i++){
-                signals.set(i, ((sum-signals.get(i)+1)/sum)*100);
+//                testing += "Signal "+Integer.toString(signals.get(i));
+                signals.set(i, ((sum-signals.get(i)+1)*100)/sum);
+//                testing += "after flipping Signal "+Integer.toString(signals.get(i));
             }
 
 
+//            for(int signal : signals){
+//                testing += "signal :"+Integer.toString(signal);
+//            }
+            ArrayList<Double[]> coordinates = applyeWeights();
 
+//            for(Double[] point : coordinates){
+//               testing += "replicated coord : "+Double.toString(point[0])+" "+Double.toString(point[1]);
+//            }
 
+            Double[] avg_coord = avgCoordinates(coordinates);
+            double mean_distance = distance(latitude, avg_coord[0], longitude, avg_coord[1]);
+            dist.setText("Mean distance : "+mean_distance+" avg coord : "+avg_coord[0]+" "+avg_coord[1]);
         }
+
+    }
+
+    public ArrayList<Double[]> applyeWeights(){
+
+        ArrayList<Double[]> coordinates = new ArrayList<>();
+        int i=0;
+        for(int weight : signals){
+
+            while(weight != 0){
+                Double[] coord = new Double[]{Double.parseDouble(lat.get(i)), Double.parseDouble(lon.get(i))};
+                coordinates.add(coord);
+                weight--;
+            }
+            i++;
+        }
+
+        return coordinates;
+    }
+
+    public Double[] avgCoordinates(ArrayList<Double[]> points){
+        if(points.size() == 1){
+            return points.get(0);
+        }
+
+        double x = 0.0;
+        double y = 0.0;
+        double z = 0.0;
+
+        for(Double[] coord : points){
+            double lat = Math.toRadians(coord[0]);
+            double log = Math.toRadians(coord[1]);
+
+            x += Math.cos(lat)*Math.cos(log);
+            y += Math.cos(lat)*Math.sin(log);
+            z += Math.sin(lat);
+        }
+
+        double total = points.size();
+
+        x = x/total;
+        y = y/total;
+        z = z/total;
+
+        double centralLongitude = Math.atan2(y, x);
+        double centralSquareRoot = Math.sqrt(x * x + y * y);
+        double centralLatitude = Math.atan2(z, centralSquareRoot);
+
+        return new Double[]{ Math.toDegrees(centralLatitude), Math.toDegrees(centralLongitude)};
 
     }
 
